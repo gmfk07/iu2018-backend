@@ -377,7 +377,7 @@ def planets():
         resp = post(data)
         return resp
     
-@app.route('/catalog', methods=["GET"])
+@app.route('/catalog', methods=["GET", "POST"])
 def catalog():
     #Return all the CatalogItems and their variables
     if request.method == "GET":
@@ -389,9 +389,36 @@ def catalog():
                                "event_specific": i.event_specific,
                                "available": i.available, "cost1": i.cost1,
                                "cost2": i.cost2, "cost3": i.cost3})
-                data = {'status': 'ok', 'results': result}
+            data = {'status': 'ok', 'results': result}
         except:
             data = {'status': 'error', 'results': 'database error'}
+                
+        resp = post(data)
+        return resp
+    #Adds a CatalogItem to the list
+    if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
+        provided_js = request.json;
+        provided_name = provided_js["name"]
+        provided_image = provided_js["image"]
+        provided_event_specific = provided_js["event_specific"]
+        provided_available = provided_js["available"]
+        provided_cost1 = provided_js["cost1"]
+        provided_cost2 = provided_js["cost2"]
+        provided_cost3 = provided_js["cost3"]
+        
+        try:
+            c = CatalogItem(name=provided_name, image=provided_image,
+                            event_specific=provided_event_specific,
+                            available=provided_available, cost1=provided_cost1,
+                            cost2=provided_cost2, cost3=provided_cost3)
+            db.session.add(c)
+            db.session.commit()
+            data = {'status': 'ok'}
+        except:
+            db.session.rollback()
+            data = {'status': 'error', 'results': 'database error'}
+        finally:
+            db.session.close()
                 
         resp = post(data)
         return resp
@@ -431,7 +458,7 @@ def items():
             p = PlanetItem(owner=u, catalog_parent=c, x=provided_x, y=provided_y)
             db.session.add(p)
             db.session.commit()
-            data = {'status': 'ok'}
+            data = {'status': 'ok', 'id': p.id, 'image': c.image}
         except:
             db.session.rollback()
             data = {'status': 'error', 'results': 'database error'}
@@ -525,7 +552,7 @@ def currency():
         resp = post(data)
         return resp
 
-@app.route('/missions', methods=["GET", "PATCH"])
+@app.route('/missions', methods=["GET", "POST", "PATCH"])
 def missions():
     #Return currency information from id
     if request.method == "GET":
@@ -536,6 +563,25 @@ def missions():
                     data = {'status': 'ok', 'mission_type': u.mission_type,
                             'mission_current': u.mission_current,
                             'mission_total': u.mission_total}
+                except:
+                    data = {'status': 'error', 'results': 'database error'}
+            else:
+                data = {'status': 'error', 'note': 'user does not exist'}
+        else:
+            data = {'status': 'error', 'note': 'wrong params'}
+            
+        resp = post(data)
+        return resp
+    #Add one to mission_current
+    if request.method == "POST":
+        if "user_id" in request.args:
+            u = User.query.get(request.args["user_id"])
+            if u is not None:
+                try:
+                    u.mission_current += 1
+                    db.session.add(u)
+                    db.session.commit()
+                    data = {'status': 'ok'}
                 except:
                     data = {'status': 'error', 'results': 'database error'}
             else:
