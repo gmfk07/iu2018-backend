@@ -6,6 +6,7 @@ Created on Mon Jul 16 19:55:26 2018
 """
 
 from flask import Flask, request, jsonify
+from flask_socketio import SocketIO, join_room, leave_room, send, emit
 from flask_cors import CORS
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
@@ -16,8 +17,44 @@ import threading
 app = Flask(__name__)
 CORS(app)
 app.config.from_object(Config)
+
+app.config['SECRET_KEY'] = '$295jvpq34%#2ds'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+socketio = SocketIO(app)
+
+if __name__ == '__main__':
+    socketio.run(app, debug = True, host='localhost', port=8080)
+
+@socketio.on('join')
+def on_join(data):
+    username = data['username']
+    room = data['room']
+    join_room(room)
+    send(username + ' has entered the room.', room=room)
+
+@socketio.on('leave')
+def on_leave(data):
+    username = data['username']
+    room = data['room']
+    leave_room(room)
+    send(username + ' has left the room.', room=room)
+    
+@socketio.on('my event', namespace='/test')
+def test_message(message):
+    emit('my response', {'data': message['data']})
+
+@socketio.on('my broadcast event', namespace='/test')
+def test_message(message):
+    emit('broadcast response', {'data': message['data']}, broadcast=True)
+    
+@socketio.on('connect', namespace='/test')
+def test_connect():
+    emit('my response', {'data': 'Connected'})
+
+@socketio.on('disconnect', namespace='/test')
+def test_disconnect():
+    print('Client disconnected')
 
 from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem
 
