@@ -377,7 +377,7 @@ def planets():
         resp = post(data)
         return resp
     
-@app.route('/catalog', methods=["GET", "POST"])
+@app.route('/catalog', methods=["GET", "POST", "PATCH"])
 def catalog():
     #Return all the CatalogItems and their variables
     if request.method == "GET":
@@ -422,8 +422,21 @@ def catalog():
                 
         resp = post(data)
         return resp
+    #Updates a CatalogItem to flip the available variable's value
+    if request.method == "PATCH":
+        c = CatalogItem.query.get(request.args["catalog_id"])
+        try:
+            c.available = not c.available
+            db.session.add(c)
+            db.session.commit()
+            data = {'status': 'ok'}
+        except:
+            data = {'status': 'error', 'results': 'database error'}
+                
+        resp = post(data)
+        return resp
 
-@app.route('/items', methods=["GET", "POST", "PATCH"])
+@app.route('/items', methods=["GET", "POST", "PATCH", "DELETE"])
 def items():
     #Return all of a user's PlanetItems and their variables
     if request.method == "GET":
@@ -465,6 +478,21 @@ def items():
         finally:
             db.session.close()
                 
+        resp = post(data)
+        return resp
+    #Removes an item from the database
+    if request.method == "DELETE":
+        if "item_id" in request.args:
+            try:
+                i = PlanetItem.query.get(request.args["item_id"])
+                db.session.delete(i)
+                db.session.commit()
+                data = {'status': 'ok'}
+            except:
+                data = {'status': 'error', 'results': 'database error'}
+        else:
+            data = {'status': 'error', 'results': 'wrong params'}
+            
         resp = post(data)
         return resp
     #Updates the given item_id with x and y
