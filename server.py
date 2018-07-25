@@ -23,8 +23,10 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 socketio = SocketIO(app)
 
+chatArray = []
+
 if __name__ == '__main__':
-    socketio.run(app, debug = True, host='localhost', port=8080)
+    socketio.run(app, debug = True)
 
 @socketio.on('join')
 def on_join(data):
@@ -40,17 +42,21 @@ def on_leave(data):
     leave_room(room)
     send(username + ' has left the room.', room=room)
     
-@socketio.on('my event', namespace='/test')
+@socketio.on('event', namespace='/test')
 def test_message(message):
     emit('my response', {'data': message['data']})
 
-@socketio.on('my broadcast event', namespace='/test')
+@socketio.on('broadcast event', namespace='/test')
 def test_message(message):
     emit('broadcast response', {'data': message['data']}, broadcast=True)
+    chatArray.append(message['data'])
     
 @socketio.on('connect', namespace='/test')
 def test_connect():
     emit('my response', {'data': 'Connected'})
+    for message in chatArray:
+        emit('chat history', {'data': message})
+    print('Client connected')
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
