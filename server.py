@@ -13,6 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
 import threading
+import json as JSON
 
 app = Flask(__name__)
 CORS(app)
@@ -23,46 +24,53 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 socketio = SocketIO(app)
 
-chatArray = []
+from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem
+
+chatRooms = {}
+chatRooms["u"] = []
+for galaxy in Galaxy.query.all():
+    chatRooms["g" + str(galaxy.id)] = []
+for planet in Planet.query.all():
+    chatRooms["p" + str(planet.id)] = []
 
 if __name__ == '__main__':
     socketio.run(app, debug = True)
-
-@socketio.on('join')
-def on_join(data):
-    username = data['username']
-    room = data['room']
-    join_room(room)
-    send(username + ' has entered the room.', room=room)
-
-@socketio.on('leave')
-def on_leave(data):
-    username = data['username']
-    room = data['room']
-    leave_room(room)
-    send(username + ' has left the room.', room=room)
     
-@socketio.on('event', namespace='/test')
-def test_message(message):
-    emit('my response', {'data': message['data']})
+
+def update_chat_list(inputList, val, maxLength):
+    inputList.append(val);
+    if len(inputList) > maxLength:
+        inputList.remove(inputList[0])
+
+@socketio.on('join', namespace='/test')
+def on_join(rm):
+    #username = data['username']
+    join_room(rm)
+    for json in chatRooms[rm]:
+        emit('chat history', json)
+    #send(username + ' has entered the room.', room=room)
+
+@socketio.on('leave', namespace='/test')
+def on_leave(rm):
+    #username = data['username']
+    room = rm
+    leave_room(room)
+    #send(username + ' has left the room.', room=room)
 
 @socketio.on('broadcast event', namespace='/test')
-def test_message(message):
-    emit('broadcast response', {'data': message['data']}, broadcast=True)
-    chatArray.append(message['data'])
+def broadcast_chat(json):
+    room = JSON.loads(json)['room']
+    emit('broadcast response', json, broadcast=True, room=room)
+    update_chat_list(chatRooms[room], json, 30)
     
 @socketio.on('connect', namespace='/test')
 def test_connect():
     emit('my response', {'data': 'Connected'})
-    for message in chatArray:
-        emit('chat history', {'data': message})
     print('Client connected')
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
     print('Client disconnected')
-
-from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem
 
 def new_mission(user_id):
     u = User.query.get(user_id)
@@ -132,7 +140,7 @@ def users():
                     p_id = u.planet[0].id
                 data = {'status': 'ok', 'email':  u.email, 'name': u.name,
                         'login_days': u.login_days, 'last_login': u.last_login,
-                        'planet_id': p_id}
+                        'planet_id': p_id, 'username': u.username}
             else:
                 data = {'status': 'error', 'note': 'user does not exist'}
         else:
