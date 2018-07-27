@@ -17,6 +17,7 @@ class User(db.Model):
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
+    authenticated = db.Column(db.Boolean)
     name = db.Column(db.String(64))
     login_days = db.Column(db.Integer, default=1)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
@@ -42,7 +43,23 @@ class User(db.Model):
         primaryjoin=(visitors.c.visitor_id == id),
         secondaryjoin=(visitors.c.visited_id == id),
         backref=db.backref('visitors', lazy='dynamic'), lazy='dynamic')
+    
+    def is_active(self):
+        """True, as all users are active."""
+        return True
 
+    def get_id(self):
+        """Return the id to satisfy Flask-Login's requirements."""
+        return self.id
+
+    def is_authenticated(self):
+        """Return True if the user is authenticated."""
+        return self.authenticated
+
+    def is_anonymous(self):
+        """False, as anonymous users aren't supported."""
+        return False
+    
     def visit(self, user):
         if not self.has_visited(user):
             self.visited.append(user)

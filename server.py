@@ -6,7 +6,8 @@ Created on Mon Jul 16 19:55:26 2018
 """
 
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, join_room, leave_room, send, emit
+from flask_login import LoginManager, login_required, current_user, login_user, logout_user
+from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
@@ -23,6 +24,7 @@ app.config['SECRET_KEY'] = '$295jvpq34%#2ds'
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 socketio = SocketIO(app)
+login_manager = LoginManager(app)
 
 from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem
 
@@ -34,6 +36,7 @@ for planet in Planet.query.all():
     chatRooms["p" + str(planet.id)] = []
 
 if __name__ == '__main__':
+    login_manager.init_app(app)
     socketio.run(app, debug = True)
     
 
@@ -86,7 +89,21 @@ def post(data, code=200):
     resp.headers['Link'] = 'http://build-it-yourself.com'
     return resp
 
-@app.route('/login', methods=["POST", "GET"])
+@login_manager.user_loader
+def user_loader(user_id):
+    """Given *user_id*, return the associated User object."""
+    return User.query.get(user_id)
+
+@login_required
+def logout():
+    """Logout the current user."""
+    u = current_user
+    u.authenticated = False
+    db.session.add(u)
+    db.session.commit()
+    logout_user()
+
+@app.route('/login', methods=["POST", "GET", "DELETE"])
 def login():
     #Adding users
     if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
@@ -118,12 +135,30 @@ def login():
         if "username" in request.args and "password_hash" in request.args:
             u = User.query.filter_by(username=request.args["username"]).first()
             if u is not None and u.password_hash == request.args["password_hash"]:
-                data = {'status': 'ok', 'note': u.id}
+                u.authenticated = True
+                db.session.add(u)
+                db.session.commit()
+                login_user(u, remember=True)
+                data = {'status': 'ok'}
             else:
                 data = {'status': 'error', 'note': 'password incorrect'}
         else:
             data = {'status': 'error', 'note': 'wrong args'}
         
+        resp = post(data)
+        return resp
+    #Logout
+    if request.method == "DELETE":
+        if "username" in request.args:
+            try:
+                logout()
+                data = {'status': 'ok'}
+            except:
+                db.session.rollback()
+                data = {'status': 'error', 'note': 'database error'}
+        else:
+            data = {'status': 'error', 'note': 'wrong args'}
+            
         resp = post(data)
         return resp
     
