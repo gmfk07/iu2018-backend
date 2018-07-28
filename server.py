@@ -467,17 +467,27 @@ def planets():
 def catalog():
     #Return all the CatalogItems and their variables
     if request.method == "GET":
-        result = []
-        try:
-            catalogList = CatalogItem.query.all()
-            for i in catalogList:
-                result.append({"id": i.id, "name": i.name, "image":i.image,
-                               "event_specific": i.event_specific,
-                               "available": i.available, "cost1": i.cost1,
-                               "cost2": i.cost2, "cost3": i.cost3})
-            data = {'status': 'ok', 'results': result}
-        except:
-            data = {'status': 'error', 'results': 'database error'}
+        if "catalog_id" in request.args:
+            c = CatalogItem.query.get(request.args["catalog_id"])
+            if c != None:
+                data = {"name": c.name, "image":c.image,
+                        "event_specific": c.event_specific,
+                        "available": c.available, "cost1": c.cost1,
+                        "cost2": c.cost2, "cost3": c.cost3}
+            else:
+                data = {'status': 'error', 'results': 'item DNE'}
+        else:
+            result = []
+            try:
+                catalogList = CatalogItem.query.all()
+                for i in catalogList:
+                    result.append({"id": i.id, "name": i.name, "image":i.image,
+                                   "event_specific": i.event_specific,
+                                   "available": i.available, "cost1": i.cost1,
+                                   "cost2": i.cost2, "cost3": i.cost3})
+                data = {'status': 'ok', 'results': result}
+            except:
+                data = {'status': 'error', 'results': 'database error'}
                 
         resp = post(data)
         return resp
