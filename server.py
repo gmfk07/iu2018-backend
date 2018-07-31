@@ -273,6 +273,7 @@ def visitors():
                         db.session.add(v)
                     db.session.add(u)
                     db.session.commit()
+                    data = {'status': 'ok'}
                 except:
                     db.session.rollback()
                     data = {'status': 'error', 'note': "couldn't add to database"}
@@ -767,12 +768,13 @@ def upload_file():
         elif file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             
+            #Make the path and create a file!
             if not os.path.exists(app.config['UPLOAD_FOLDER']):
                 os.makedirs(app.config['UPLOAD_FOLDER'])
                 
             open("/uploads/" + filename, "w+")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            print('yeet')
+
             data = {'status': 'ok', \
                     'url': url_for('uploaded_file', filename=filename)}
         else:
