@@ -5,7 +5,7 @@ Created on Mon Jul 16 19:55:26 2018
 @author: gmfk07
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, url_for, send_from_directory
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_cors import CORS
@@ -13,14 +13,20 @@ from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
+from werkzeug.utils import secure_filename
 import threading
 import json as JSON
+import os
 
 app = Flask(__name__)
 CORS(app)
 app.config.from_object(Config)
 
+UPLOAD_FOLDER = '/uploads/'
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
+
 app.config['SECRET_KEY'] = '$295jvpq34%#2ds'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 socketio = SocketIO(app)
@@ -44,6 +50,15 @@ def update_chat_list(inputList, val, maxLength):
     inputList.append(val);
     if len(inputList) > maxLength:
         inputList.remove(inputList[0])
+        
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'],
+                               filename)
 
 @socketio.on('join', namespace='/test')
 def on_join(rm):
@@ -738,6 +753,31 @@ def missions():
         else:
             data = {'status': 'error', 'note': "wrong params"}
         
+        resp = post(data)
+        return resp
+
+@app.route('/files', methods=['POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        file = request.files['file']
+        # check user selected a file
+        if file.filename == '':
+            data = {'status': 'error', 'note': "no selected file"}
+        elif file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+                
+            open("/uploads/" + filename, "w+")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            print('yeet')
+            data = {'status': 'ok', \
+                    'url': url_for('uploaded_file', filename=filename)}
+        else:
+            data = {'status': 'error', 'note': 'file not allowed'}
+            
         resp = post(data)
         return resp
 
