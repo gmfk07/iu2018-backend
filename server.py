@@ -190,7 +190,9 @@ def users():
                     p_id = u.planet[0].id
                 data = {'status': 'ok', 'email':  u.email, 'name': u.name,
                         'login_days': u.login_days, 'last_login': u.last_login,
-                        'planet_id': p_id, 'username': u.username}
+                        'planet_id': p_id, 'username': u.username, 
+                        'chat_color': u.chat_color, 'alien': u.alien,
+                        'rocket': u.rocket}
             else:
                 data = {'status': 'error', 'note': 'user does not exist'}
         else:
@@ -202,7 +204,21 @@ def users():
     if request.method == "PATCH":
         if "user_id" in request.args:
             u = User.query.get(request.args["user_id"])
-            if u is not None :
+            if u is None:
+                data = {'status': 'error', 'note': 'user does not exist'}
+                resp = post(data)
+                return resp
+            elif "chat_color" in request.args:
+                u.chat_color = request.args["chat_color"]
+                data = {'status': 'ok'}
+            elif "alien" in request.args:
+                u.alien = request.args["alien"]
+                data = {'status': 'ok'}
+            elif "rocket" in request.args:
+                u.rocket = request.args["rocket"]
+                data = {'status': 'ok'}
+            else:
+                #No other param passed in
                 current_date = datetime.utcnow()
                 stored_date = u.last_login
                 if (current_date.date() == stored_date.date()):
@@ -212,13 +228,9 @@ def users():
                     u.login_days += 1
                 u.last_login = current_date
                 data = {'status': 'ok', 'new_day': new_day, 'login_days': u.login_days}
-                db.session.add(u)
-                db.session.commit()
-                db.session.close()
-            else:
-                data = {'status': 'error', 'note': 'user does not exist'}
-        else:
-            data = {'status': 'error', 'note': 'wrong params'}
+            db.session.add(u)
+            db.session.commit()
+            db.session.close()
             
         resp = post(data)
         return resp
