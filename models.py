@@ -12,6 +12,11 @@ visitors = db.Table('visitors',
     db.Column('visited_id', db.Integer, db.ForeignKey('user.id'))
 )
 
+chatStore = db.Table('chat_store',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('chat_item_id', db.Integer, db.ForeignKey('chat_item.id'))
+)
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -40,6 +45,12 @@ class User(db.Model):
     
     planet = db.relationship('Planet', backref='owner', lazy='dynamic')
     planet_items = db.relationship('PlanetItem', backref='owner', lazy='dynamic')
+    
+    chat_items = db.relationship(
+        'CatalogItem', secondary=chatStore,
+        primaryjoin=(chatStore.c.user_id == id),
+        secondaryjoin=(chatStore.c.chat_item_id == id),
+        backref=db.backref('chat_store', lazy='dynamic'), lazy='dynamic')
     
     visited = db.relationship(
         'User', secondary=visitors,
@@ -74,6 +85,14 @@ class User(db.Model):
     def has_visited(self, user):
         return self.visited.filter(
             visitors.c.visitor_id == user.id).count() > 0
+                
+    def add_chat_item(self, chat_item):
+        if not self.has_chat_item(chat_item):
+            self.chat_items.append(chat_item)
+            
+    def has_chat_item(self, chat_item):
+        return self.chat_items.filter(
+            chatStore.c.chat_item_id == chat_item.id).count() > 0
 
     def __repr__(self):
         return '<User {}>'.format(self.username)    
@@ -133,6 +152,18 @@ class CatalogItem(db.Model):
     
     def __repr__(self):
         return '<CatalogItem {}>'.format(self.name)
+    
+class ChatItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    itemType = db.Column(db.Integer)
+    string = db.Column(db.String(16), index=True, unique=True)
+    
+    cost1 = db.Column(db.Integer)
+    cost2 = db.Column(db.Integer)
+    cost3 = db.Column(db.Integer)
+    
+    def __repr__(self):
+        return '<ChatItem {}>'.format(self.name)
     
 class PlanetItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -32,7 +32,7 @@ migrate = Migrate(app, db)
 socketio = SocketIO(app)
 login_manager = LoginManager(app)
 
-from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem
+from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem, ChatItem
 
 chatRooms = {}
 chatRooms["u"] = []
@@ -77,6 +77,12 @@ def on_leave(rm):
 
 @socketio.on('broadcast event', namespace='/test')
 def broadcast_chat(json):
+    room = JSON.loads(json)['room']
+    emit('broadcast response', json, broadcast=True, room=room)
+    update_chat_list(chatRooms[room], json, 30)
+    
+@socketio.on('broadcast event', namespace='/pos')
+def broadcast_pos(json):
     room = JSON.loads(json)['room']
     emit('broadcast response', json, broadcast=True, room=room)
     update_chat_list(chatRooms[room], json, 30)
@@ -642,6 +648,49 @@ def items():
         resp = post(data)
         return resp
 
+@app.route('/chatitems', methods=["GET", "POST"])
+def chat_items():
+    #Return all of a user's PlanetItems and their variables
+    if request.method == "GET":
+        if "user_id" in request.args:
+            result = []
+            try:
+                u = User.query.get(request.args["user_id"])
+                for i in u.chat_items:
+                    result.append({"id": i.id, "itemType": i.itemType,
+                                   "string": i.string, "cost1": i.cost1,
+                                   "cost2": i.cost2, "cost3": i.cost3})
+                data = {'status': 'ok', 'results': result}
+            except:
+                data = {'status': 'error', 'results': 'database error'}
+        else:
+            data = {'status': 'error', 'results': 'wrong params'}
+                
+        resp = post(data)
+        return resp
+    #Add a PlanetItem to a player's PlanetItemList
+    if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
+        provided_js = request.json;
+        provided_user_id = provided_js["user_id"]
+        provided_chat_item_id = provided_js["chat_item_id"]
+        
+        try:
+            u = User.query.get(provided_user_id)
+            c = ChatItem.query.get(provided_chat_item_id)
+            u.add_chat_item(c)
+            db.session.add(u)
+            db.session.add(c)
+            db.session.commit()
+            data = {'status': 'ok'}
+        except:
+            db.session.rollback()
+            data = {'status': 'error', 'results': 'database error'}
+        finally:
+            db.session.close()
+                
+        resp = post(data)
+        return resp
+
 @app.route('/currency', methods=["GET", "PATCH"])
 def currency():
     #Return currency information from id
@@ -842,4 +891,4 @@ def status_table():
 def make_shell_context():
     return {'db': db, 'User': User, 'Galaxy': Galaxy, 'System': System,
             'Planet': Planet, 'CatalogItem': CatalogItem, 'PlanetItem': PlanetItem,
-            'Status': Status}
+            'ChatItem': ChatItem, 'Status': Status}
