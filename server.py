@@ -648,28 +648,70 @@ def items():
         resp = post(data)
         return resp
 
-@app.route('/chatitems', methods=["GET", "POST"])
+@app.route('/chatitems', methods=["GET", "POST", "PATCH"])
 def chat_items():
-    #Return all of a user's PlanetItems and their variables
+    #Return all of a user's ChatItems and their variables
     if request.method == "GET":
+        result = []
         if "user_id" in request.args:
-            result = []
-            try:
-                u = User.query.get(request.args["user_id"])
-                for i in u.chat_items:
-                    result.append({"id": i.id, "itemType": i.itemType,
-                                   "string": i.string, "cost1": i.cost1,
-                                   "cost2": i.cost2, "cost3": i.cost3})
-                data = {'status': 'ok', 'results': result}
-            except:
-                data = {'status': 'error', 'results': 'database error'}
+            if "item_type" in request.args:
+                try:
+                    u = User.query.get(request.args["user_id"])
+                    for i in u.chat_items:
+                        if str(i.itemType) == request.args["item_type"]:
+                            result.append({"id": i.id, "string": i.string,
+                                           "cost1": i.cost1, "cost2": i.cost2,
+                                           "cost3": i.cost3})
+                    data = {'status': 'ok', 'results': result}
+                except:
+                    data = {'status': 'error', 'results': 'database error'}
+            else:
+                try:
+                    u = User.query.get(request.args["user_id"])
+                    for i in ChatItem.query.all():
+                        result.append({"id": i.id, "string": i.string,
+                                    "cost1": i.cost1, "cost2": i.cost2,
+                                    "cost3": i.cost3, "item_type": i.itemType,
+                                    "owned": i in u.chat_items})
+                    data = {'status': 'ok', 'results': result}
+                except:
+                    data = {'status': 'error', 'results': 'database error'}
         else:
-            data = {'status': 'error', 'results': 'wrong params'}
+            for i in ChatItem.query.all():
+                result.append({"id": i.id, "string": i.string, "item_type": i.itemType,
+                               "cost1": i.cost1, "cost2": i.cost2,
+                               "cost3": i.cost3})
+            data = {'status': 'ok', 'results': result}
                 
         resp = post(data)
         return resp
-    #Add a PlanetItem to a player's PlanetItemList
+    #Creates a ChatItem
     if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
+        provided_js = request.json;
+        provided_item_type = provided_js["item_type"]
+        provided_string = provided_js["string"]
+        provided_cost1 = provided_js["cost1"]
+        provided_cost2 = provided_js["cost2"]
+        provided_cost3 = provided_js["cost3"]
+        
+        
+        try:
+            c = ChatItem(itemType = provided_item_type, string = provided_string,
+                         cost1 = provided_cost1, cost2 = provided_cost2,
+                         cost3 = provided_cost3)
+            db.session.add(c)
+            db.session.commit()
+            data = {'status': 'ok'}
+        except:
+            db.session.rollback()
+            data = {'status': 'error', 'results': 'database error'}
+        finally:
+            db.session.close()
+                
+        resp = post(data)
+        return resp
+    #Add a ChatItem to a player's ChatItemList
+    if request.method == "PATCH" and request.headers['Content-Type'] == 'application/json':
         provided_js = request.json;
         provided_user_id = provided_js["user_id"]
         provided_chat_item_id = provided_js["chat_item_id"]
@@ -677,7 +719,7 @@ def chat_items():
         try:
             u = User.query.get(provided_user_id)
             c = ChatItem.query.get(provided_chat_item_id)
-            u.add_chat_item(c)
+            u.chat_items.append(c);
             db.session.add(u)
             db.session.add(c)
             db.session.commit()
