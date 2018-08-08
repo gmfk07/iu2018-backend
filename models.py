@@ -26,7 +26,7 @@ class User(db.Model):
     name = db.Column(db.String(64))
     login_days = db.Column(db.Integer, default=1)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
-    chat_color = db.Column(db.String(16))
+    chat_color = db.Column(db.String(16), default="black")
     alien = db.Column(db.String(128))
     rocket = db.Column(db.String(128))
     
