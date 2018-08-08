@@ -32,6 +32,9 @@ migrate = Migrate(app, db)
 socketio = SocketIO(app)
 login_manager = LoginManager(app)
 
+#How many seconds it takes to get a new mission
+mission_time = 10
+
 from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem, ChatItem
 
 chatRooms = {}
@@ -137,6 +140,8 @@ def login():
                 #Username is unique
                 u = User(username = provided_user, email = provided_email,
                          password_hash = provided_pass)
+                shop_item = ChatItem.query.filter_by(string='black').first()
+                u.chat_items.append(shop_item)
                 db.session.add(u)
                 try:
                     db.session.commit()
@@ -844,7 +849,7 @@ def missions():
                 db.session.add(u)
                 try:
                     db.session.commit()
-                    timer = threading.Timer(10.0, new_mission, (u.id,))
+                    timer = threading.Timer(mission_time, new_mission, (u.id,))
                     timer.start()
                     data = {'status': 'ok'}
                 except:
