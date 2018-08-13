@@ -771,18 +771,24 @@ def currency():
             provided_vou2 = provided_js["vou2"]
             provided_vou3 = provided_js["vou3"]
             
+            if "update_lifetime" in provided_js:
+                provided_update = provided_js["update_lifetime"]
+            else:
+                provided_update = True
+            
             u = User.query.get(provided_user_id)
+            print(u)
             if u != None:
                 u.cur1 += provided_cur1
                 u.cur2 += provided_cur2
                 u.cur3 += provided_cur3
                 u.vou2 += provided_vou2
                 u.vou3 += provided_vou3
-                if (u.cur1 > 0):
+                if (provided_cur1 > 0 and provided_update):
                     u.lifetime_cur1 += provided_cur1
-                if (u.cur2 > 0):
+                if (provided_cur2 > 0 and provided_update):
                     u.lifetime_cur2 += provided_cur2
-                if (u.cur3 > 0):
+                if (provided_cur3 > 0 and provided_update):
                     u.lifetime_cur3 += provided_cur3
                     
                 db.session.add(u)
