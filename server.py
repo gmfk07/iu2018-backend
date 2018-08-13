@@ -421,7 +421,7 @@ def planets():
                 data = {'status': 'ok', 'results': result}
             except:
                 data = {'status': 'error', 'note': 'database error'}
-        elif "user_id" in request.args:
+        if "user_id" in request.args:
             u = User.query.get(request.args["user_id"])
             if len(u.planet.all()) == 0:
                 data = {'status': 'ok', 'results': None}
@@ -430,7 +430,7 @@ def planets():
                 data = {'status': 'ok', "id": p.id, "name": p.name, "size": p.size,
                 "order": p.order, "image": p.image, "surface": p.surface, 
                 "owner_id": p.owner_id, "system_id": p.system_id}
-        elif "planet_id" in request.args:
+        if "planet_id" in request.args:
             try:
                 p = Planet.query.get(request.args["planet_id"])
                 data = {'status': 'ok', "id": p.id, "name": p.name, "size": p.size,
@@ -444,25 +444,38 @@ def planets():
                 
         resp = post(data)
         return resp
-    #Sets a user's planet to a given planet_id
+    #Update planet variables
     if request.method == "PATCH" and request.headers['Content-Type'] == 'application/json':
         provided_js = request.json;
-        provided_user_id = provided_js["user_id"]
         provided_planet_id = provided_js["planet_id"]
-        provided_name = provided_js["name"]
-
-        u = User.query.get(provided_user_id)
         p = Planet.query.get(provided_planet_id)
-        if len(u.planet.all()) != 0:
-            old_planet = u.planet[0]
-            old_planet.name = None
-            u.planet.remove(old_planet) 
-            db.session.add(old_planet)
+        if "user_id" and "name" in provided_js:
+            provided_user_id = provided_js["user_id"]
+            provided_name = provided_js["name"]
+    
+            u = User.query.get(provided_user_id)
             
-        p.name = provided_name
-        u.planet.append(p)
-        db.session.add(u)
-        db.session.add(p)
+            if len(u.planet.all()) != 0:
+                old_planet = u.planet[0]
+                old_planet.name = None
+                u.planet.remove(old_planet) 
+                db.session.add(old_planet)
+                
+            p.name = provided_name
+            u.planet.append(p)
+            db.session.add(u)
+            db.session.add(p)
+            
+        elif "surface" in provided_js:
+            provided_surface = provided_js["surface"]
+            p.surface = provided_surface
+            db.session.add(p)
+            
+        elif "image" in provided_js:
+           provided_image = provided_js["image"]
+           p.image = provided_image
+           db.session.add(p)
+            
         try:
             db.session.commit()
             data = {'status': 'ok'}
