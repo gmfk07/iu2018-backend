@@ -29,6 +29,10 @@ class User(db.Model):
     chat_color = db.Column(db.String(16), default="black")
     alien = db.Column(db.String(128))
     rocket = db.Column(db.String(128))
+    bio = db.Column(db.String(256))
+    
+    planet_desc = db.Column(db.String(256))
+    theme = db.Column(db.String(128))
     
     mission_type = db.Column(db.String(16), default="visit")
     mission_current = db.Column(db.Integer, default=0)
@@ -45,6 +49,7 @@ class User(db.Model):
     
     planet = db.relationship('Planet', backref='owner', lazy='dynamic')
     planet_items = db.relationship('PlanetItem', backref='owner', lazy='dynamic')
+    aliens = db.relationship('Alien', backref='owner', lazy='dynamic')
     
     chat_items = db.relationship(
         'ChatItem', secondary=chatStore, backref=db.backref('owners', lazy='joined'), lazy='joined')
@@ -163,7 +168,29 @@ class PlanetItem(db.Model):
     
     def __repr__(self):
         return '<PlanetItem {}>'.format(self.id)
+
+class AlienSpecies(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), index=True, unique=True)
+    image = db.Column(db.String(128))
+    available = db.Column(db.Boolean)
     
+    aliens = db.relationship('Alien', backref='species', lazy='dynamic')
+    
+    def __repr__(self):
+        return '<AlienSpecies {}>'.format(self.name)
+    
+class Alien(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    species_id = db.Column(db.Integer, db.ForeignKey('alien_species.id'))
+    name = db.Column(db.String(64), index=True, unique=True)
+    x = db.Column(db.Integer)
+    y = db.Column(db.Integer)
+    
+    def __repr__(self):
+        return '<Alien {}>'.format(self.name)
+
 class Status(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event = db.Column(db.Boolean)
