@@ -29,6 +29,10 @@ class User(db.Model):
     chat_color = db.Column(db.String(16), default="black")
     alien = db.Column(db.String(128))
     rocket = db.Column(db.String(128))
+    bio = db.Column(db.String(256))
+    
+    planet_desc = db.Column(db.String(256))
+    theme = db.Column(db.String(128))
     
     mission_type = db.Column(db.String(16), default="visit")
     mission_current = db.Column(db.Integer, default=0)
@@ -132,6 +136,7 @@ class CatalogItem(db.Model):
     image = db.Column(db.String(128))
     event_specific = db.Column(db.Boolean)
     available = db.Column(db.Boolean)
+    is_rocket = db.Column(db.Boolean)
     
     cost1 = db.Column(db.Integer)
     cost2 = db.Column(db.Integer)

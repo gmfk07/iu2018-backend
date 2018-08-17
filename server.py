@@ -447,22 +447,45 @@ def planets():
     #Sets a user's planet to a given planet_id
     if request.method == "PATCH" and request.headers['Content-Type'] == 'application/json':
         provided_js = request.json;
-        provided_user_id = provided_js["user_id"]
         provided_planet_id = provided_js["planet_id"]
-        provided_name = provided_js["name"]
-
-        u = User.query.get(provided_user_id)
         p = Planet.query.get(provided_planet_id)
-        if len(u.planet.all()) != 0:
-            old_planet = u.planet[0]
-            old_planet.name = None
-            u.planet.remove(old_planet) 
-            db.session.add(old_planet)
+        if "user_id" and "name" in provided_js:
+            provided_user_id = provided_js["user_id"]
+            provided_name = provided_js["name"]
+    
+            u = User.query.get(provided_user_id)
             
-        p.name = provided_name
-        u.planet.append(p)
-        db.session.add(u)
-        db.session.add(p)
+            if len(u.planet.all()) != 0:
+                old_planet = u.planet[0]
+                old_planet.name = None
+                u.planet.remove(old_planet) 
+                db.session.add(old_planet)
+                
+            p.name = provided_name
+            u.planet.append(p)
+            db.session.add(u)
+            db.session.add(p)
+            
+        if "surface" in provided_js:
+            provided_surface = provided_js["surface"]
+            p.surface = provided_surface
+            db.session.add(p)
+            
+        if "image" in provided_js:
+           provided_image = provided_js["image"]
+           p.image = provided_image
+           db.session.add(p)
+        
+        if "description" in provided_js:
+           provided_description = provided_js["description"]
+           p.description = provided_description
+           db.session.add(p)
+           
+        if "song" in provided_js:
+           provided_song = provided_js["song"]
+           p.song = provided_song
+           db.session.add(p)
+        
         try:
             db.session.commit()
             data = {'status': 'ok'}
@@ -540,12 +563,14 @@ def catalog():
         provided_cost1 = provided_js["cost1"]
         provided_cost2 = provided_js["cost2"]
         provided_cost3 = provided_js["cost3"]
+        provided_is_rocket = provided_js["is_rocket"]
         
         try:
             c = CatalogItem(name=provided_name, image=provided_image,
                             event_specific=provided_event_specific,
                             available=provided_available, cost1=provided_cost1,
-                            cost2=provided_cost2, cost3=provided_cost3)
+                            cost2=provided_cost2, cost3=provided_cost3,
+                            is_rocket = provided_is_rocket)
             db.session.add(c)
             db.session.commit()
             data = {'status': 'ok'}
@@ -583,7 +608,8 @@ def items():
                     c = i.catalog_parent_id
                     result.append({"id": i.id, "catalog_parent_id": c,
                                    "x": i.x, "y": i.y,
-                                   "image": CatalogItem.query.get(c).image})
+                                   "image": CatalogItem.query.get(c).image,
+                                   "is_rocket": CatalogItem.query.get(c).is_rocket})
                 data = {'status': 'ok', 'results': result}
             except:
                 data = {'status': 'error', 'results': 'database error'}
@@ -606,7 +632,8 @@ def items():
             p = PlanetItem(owner=u, catalog_parent=c, x=provided_x, y=provided_y)
             db.session.add(p)
             db.session.commit()
-            data = {'status': 'ok', 'id': p.id, 'image': c.image}
+            data = {'status': 'ok', 'id': p.id, 'image': c.image, \
+                    'is_rocket': c.is_rocket}
         except:
             db.session.rollback()
             data = {'status': 'error', 'results': 'database error'}
