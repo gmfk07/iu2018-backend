@@ -35,7 +35,7 @@ login_manager = LoginManager(app)
 #How many seconds it takes to get a new mission
 mission_time = 10
 
-from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem, ChatItem, AlienSpecies, Alien
+from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem, ChatItem
 
 chatRooms = {}
 chatRooms["u"] = []
@@ -203,8 +203,7 @@ def users():
                         'login_days': u.login_days, 'last_login': u.last_login,
                         'planet_id': p_id, 'username': u.username, 
                         'chat_color': u.chat_color, 'alien': u.alien,
-                        'bio': u.bio, 'planet_desc': u.planet_desc,
-                        'theme': u.theme, 'rocket': u.rocket}
+                        'rocket': u.rocket}
             else:
                 data = {'status': 'error', 'note': 'user does not exist'}
         else:
@@ -897,147 +896,6 @@ def upload_file():
             
         resp = post(data)
         return resp
-    
-@app.route('/species', methods=["GET", "POST", "PATCH"])
-def species():
-    #Return all the CatalogItems and their variables
-    if request.method == "GET":
-        if "species_id" in request.args:
-            s = AlienSpecies.query.get(request.args["species_id"])
-            if s != None:
-                data = {"name": s.name, "image": s.image, 
-                        "available": s.available}
-            else:
-                data = {'status': 'error', 'results': 'species DNE'}
-        else:
-            result = []
-            try:
-                speciesList = AlienSpecies.query.all()
-                for s in speciesList:
-                    result.append({"id": s.id, "name": s.name, "image": s.image,
-                                   "available": s.available})
-                data = {'status': 'ok', 'results': result}
-            except:
-                data = {'status': 'error', 'results': 'database error'}
-                
-        resp = post(data)
-        return resp
-    #Adds a CatalogItem to the list
-    if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
-        provided_js = request.json;
-        provided_name = provided_js["name"]
-        provided_image = provided_js["image"]
-        provided_available = provided_js["available"]
-        
-        try:
-            s = AlienSpecies(name=provided_name, image=provided_image,
-                            available=provided_available)
-            db.session.add(s)
-            db.session.commit()
-            data = {'status': 'ok'}
-        except:
-            db.session.rollback()
-            data = {'status': 'error', 'results': 'database error'}
-        finally:
-            db.session.close()
-                
-        resp = post(data)
-        return resp
-    #Updates an AlienSpecies to flip the available variable's value
-    if request.method == "PATCH":
-        s = AlienSpecies.query.get(request.args["species_id"])
-        try:
-            s.available = not s.available
-            db.session.add(s)
-            db.session.commit()
-            data = {'status': 'ok'}
-        except:
-            data = {'status': 'error', 'results': 'database error'}
-                
-        resp = post(data)
-        return resp
-
-@app.route('/aliens', methods=["GET", "POST", "PATCH", "DELETE"])
-def aliens():
-    #Return all of a user's Aliens and their variables
-    if request.method == "GET":
-        if "user_id" in request.args:
-            result = []
-            try:
-                u = User.query.get(request.args["user_id"])
-                for i in u.aliens:
-                    s = i.species
-                    result.append({"id": i.id, "name": i.name, "x": i.x, "y": i.y,
-                                   "species_id": s.id, "species_name": s.name, "image": s.image})
-                data = {'status': 'ok', 'results': result}
-            except:
-                data = {'status': 'error', 'results': 'database error'}
-        else:
-            data = {'status': 'error', 'results': 'wrong params'}
-                
-        resp = post(data)
-        return resp
-    #Add an Alien to a player's PlanetItemList
-    if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
-        provided_js = request.json;
-        provided_user_id = provided_js["user_id"]
-        provided_species_id = provided_js["species_id"]
-        provided_name = provided_js["name"]
-        provided_x = provided_js["x"]
-        provided_y = provided_js["y"]
-        
-        try:
-            u = User.query.get(provided_user_id)
-            s = AlienSpecies.query.get(provided_species_id)
-            a = Alien(owner=u, species=s, name=provided_name, x=provided_x, y=provided_y)
-            db.session.add(a)
-            db.session.commit()
-            data = {'status': 'ok', 'id': a.id, 'image': s.image}
-        except:
-            db.session.rollback()
-            data = {'status': 'error', 'results': 'database error'}
-        finally:
-            db.session.close()
-                
-        resp = post(data)
-        return resp
-    #Updates the given item_id with x and y
-    if request.method == "PATCH" and request.headers['Content-Type'] == 'application/json':
-        provided_js = request.json;
-        provided_alien_id = provided_js["alien_id"]
-        provided_x = provided_js["x"]
-        provided_y = provided_js["y"]
-        
-        try:
-            a = Alien.query.get(provided_alien_id)
-            a.x = provided_x
-            a.y = provided_y
-            db.session.add(a)
-            db.session.commit()
-            data = {'status': 'ok'}
-        except:
-            db.session.rollback()
-            data = {'status': 'error', 'results': 'database error'}
-        finally:
-            db.session.close()
-            
-        resp = post(data)
-        return resp
-    #Removes an item from the database
-    if request.method == "DELETE":
-        if "alien_id" in request.args:
-            try:
-                i = Alien.query.get(request.args["alien_id"])
-                db.session.delete(i)
-                db.session.commit()
-                data = {'status': 'ok'}
-            except:
-                data = {'status': 'error', 'results': 'database error'}
-        else:
-            data = {'status': 'error', 'results': 'wrong params'}
-            
-        resp = post(data)
-        return resp
 
 @app.route('/status', methods=["GET", "PATCH"])
 def status_table():
@@ -1086,5 +944,4 @@ def status_table():
 def make_shell_context():
     return {'db': db, 'User': User, 'Galaxy': Galaxy, 'System': System,
             'Planet': Planet, 'CatalogItem': CatalogItem, 'PlanetItem': PlanetItem,
-            'ChatItem': ChatItem, 'Status': Status, 'AlienSpecies': AlienSpecies,
-            'Alien': Alien}
+            'ChatItem': ChatItem, 'Status': Status}
