@@ -49,6 +49,7 @@ class User(db.Model):
     
     planet = db.relationship('Planet', backref='owner', lazy='dynamic')
     planet_items = db.relationship('PlanetItem', backref='owner', lazy='dynamic')
+    projects = db.relationship('Project', backref='owner', lazy='dynamic')
     
     chat_items = db.relationship(
         'ChatItem', secondary=chatStore, backref=db.backref('owners', lazy='joined'), lazy='joined')
@@ -168,6 +169,16 @@ class PlanetItem(db.Model):
     
     def __repr__(self):
         return '<PlanetItem {}>'.format(self.id)
+    
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    name = db.Column(db.String(32))
+    desc = db.Column(db.String(128))
+    file = db.Column(db.String(128))
+    
+    def __repr__(self):
+        return '<Project {}>'.format(self.id)
     
 class Status(db.Model):
     id = db.Column(db.Integer, primary_key=True)

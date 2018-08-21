@@ -35,7 +35,7 @@ login_manager = LoginManager(app)
 #How many seconds it takes to get a new mission
 mission_time = 10
 
-from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem, ChatItem
+from models import Status, User, Galaxy, System, Planet, CatalogItem, PlanetItem, ChatItem, Project
 
 chatRooms = {}
 chatRooms["u"] = []
@@ -203,7 +203,8 @@ def users():
                         'login_days': u.login_days, 'last_login': u.last_login,
                         'planet_id': p_id, 'username': u.username, 
                         'chat_color': u.chat_color, 'alien': u.alien,
-                        'rocket': u.rocket}
+                        'bio': u.bio, 'planet_desc': u.planet_desc,
+                        'theme': u.theme, 'rocket': u.rocket}
             else:
                 data = {'status': 'error', 'note': 'user does not exist'}
         else:
@@ -219,16 +220,22 @@ def users():
                 data = {'status': 'error', 'note': 'user does not exist'}
                 resp = post(data)
                 return resp
-            elif "chat_color" in request.args:
+            data = {'status': 'ok'}
+            if "chat_color" in request.args:
                 u.chat_color = request.args["chat_color"]
-                data = {'status': 'ok'}
-            elif "alien" in request.args:
+            if "alien" in request.args:
                 u.alien = request.args["alien"]
-                data = {'status': 'ok'}
-            elif "rocket" in request.args:
+            if "rocket" in request.args:
                 u.rocket = request.args["rocket"]
-                data = {'status': 'ok'}
-            else:
+            if "bio" in request.args:
+                u.bio = request.args["bio"]
+            if "planet_desc" in request.args:
+                u.planet_desc = request.args["planet_desc"]
+            if "theme" in request.args:
+                u.theme = request.args["theme"]
+            if "name" in request.args:
+                u.name = request.args["name"]
+            if len(request.args) == 1:
                 #No other param passed in
                 current_date = datetime.utcnow()
                 stored_date = u.last_login
@@ -679,6 +686,64 @@ def items():
             
         resp = post(data)
         return resp
+    
+@app.route('/projects', methods=["GET", "POST", "DELETE"])
+def projects():
+    #Return all of a user's Projects and their variables
+    if request.method == "GET":
+        if "user_id" in request.args:
+            result = []
+            try:
+                u = User.query.get(request.args["user_id"])
+                for i in u.projects:
+                    result.append({"id": i.id, "name": i.name, "desc": i.desc,
+                                   "file": i.file})
+                data = {'status': 'ok', 'results': result}
+            except:
+                data = {'status': 'error', 'results': 'database error'}
+        else:
+            data = {'status': 'error', 'results': 'wrong params'}
+                
+        resp = post(data)
+        return resp
+    #Add a Project to a player's ProjectList
+    if request.method == "POST" and request.headers['Content-Type'] == 'application/json':
+        provided_js = request.json;
+        provided_user_id = provided_js["user_id"]
+        provided_name = provided_js["name"]
+        provided_desc = provided_js["desc"]
+        provided_file = provided_js["file"]
+        
+        try:
+            u = User.query.get(provided_user_id)
+            p = Project(owner=u, name=provided_name, desc=provided_desc, \
+                           file=provided_file)
+            db.session.add(p)
+            db.session.commit()
+            data = {'status': 'ok', 'id': p.id}
+        except:
+            db.session.rollback()
+            data = {'status': 'error', 'results': 'database error'}
+        finally:
+            db.session.close()
+                
+        resp = post(data)
+        return resp
+    #Removes an item from the database
+    if request.method == "DELETE":
+        if "project_id" in request.args:
+            try:
+                p = Project.query.get(request.args["project_id"])
+                db.session.delete(p)
+                db.session.commit()
+                data = {'status': 'ok'}
+            except:
+                data = {'status': 'error', 'results': 'database error'}
+        else:
+            data = {'status': 'error', 'results': 'wrong params'}
+            
+        resp = post(data)
+        return resp
 
 @app.route('/chatitems', methods=["GET", "POST", "PATCH"])
 def chat_items():
@@ -971,4 +1036,4 @@ def status_table():
 def make_shell_context():
     return {'db': db, 'User': User, 'Galaxy': Galaxy, 'System': System,
             'Planet': Planet, 'CatalogItem': CatalogItem, 'PlanetItem': PlanetItem,
-            'ChatItem': ChatItem, 'Status': Status}
+            'ChatItem': ChatItem, 'Status': Status, 'Project': Project}
