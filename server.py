@@ -424,7 +424,8 @@ def planets():
                     result.append({"id": p.id, "name": p.name, "size": p.size,
                                    "order": p.order, "image": p.image,
                                    "surface": p.surface, "owner_id": p.owner_id,
-                                   "system_id": p.system_id})
+                                   "system_id": p.system_id,
+                                   "galaxy_id": p.system.galaxy_id})
                 data = {'status': 'ok', 'results': result}
             except:
                 data = {'status': 'error', 'note': 'database error'}
@@ -436,14 +437,16 @@ def planets():
                 p = u.planet[0]
                 data = {'status': 'ok', "id": p.id, "name": p.name, "size": p.size,
                 "order": p.order, "image": p.image, "surface": p.surface, 
-                "owner_id": p.owner_id, "system_id": p.system_id}
+                "owner_id": p.owner_id, "system_id": p.system_id,
+                "galaxy_id": p.system.galaxy_id}
         elif "planet_id" in request.args:
             try:
                 p = Planet.query.get(request.args["planet_id"])
                 data = {'status': 'ok', "id": p.id, "name": p.name, "size": p.size,
                                    "order": p.order, "image": p.image,
                                    "surface": p.surface, "owner_id": p.owner_id,
-                                   "system_id": p.system_id}
+                                   "system_id": p.system_id,
+                                   "galaxy_id": p.system.galaxy_id}
             except:
                 data = {'status': 'error', 'note': 'database error'}
         else:
@@ -542,7 +545,8 @@ def catalog():
                 data = {"name": c.name, "image":c.image,
                         "event_specific": c.event_specific,
                         "available": c.available, "cost1": c.cost1,
-                        "cost2": c.cost2, "cost3": c.cost3}
+                        "cost2": c.cost2, "cost3": c.cost3,
+                        "is_rocket": c.is_rocket}
             else:
                 data = {'status': 'error', 'results': 'item DNE'}
         else:
@@ -553,7 +557,8 @@ def catalog():
                     result.append({"id": i.id, "name": i.name, "image":i.image,
                                    "event_specific": i.event_specific,
                                    "available": i.available, "cost1": i.cost1,
-                                   "cost2": i.cost2, "cost3": i.cost3})
+                                   "cost2": i.cost2, "cost3": i.cost3,
+                                   "is_rocket": i.is_rocket})
                 data = {'status': 'ok', 'results': result}
             except:
                 data = {'status': 'error', 'results': 'database error'}
