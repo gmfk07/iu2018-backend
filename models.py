@@ -50,6 +50,7 @@ class User(db.Model):
     planet = db.relationship('Planet', backref='owner', lazy='dynamic')
     planet_items = db.relationship('PlanetItem', backref='owner', lazy='dynamic')
     projects = db.relationship('Project', backref='owner', lazy='dynamic')
+    aliens = db.relationship('Alien', backref='owner', lazy='dynamic')
     
     chat_items = db.relationship(
         'ChatItem', secondary=chatStore, backref=db.backref('owners', lazy='joined'), lazy='joined')

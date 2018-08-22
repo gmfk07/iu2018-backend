@@ -1046,7 +1046,8 @@ def species():
             s = AlienSpecies.query.get(request.args["species_id"])
             if s != None:
                 data = {"name": s.name, "image": s.image, 
-                        "available": s.available}
+                        "available": s.available, "event_specific": s.event_specific,
+                        "cost1": s.cost1, "cost2": s.cost2, "cost3": s.cost3}
             else:
                 data = {'status': 'error', 'results': 'species DNE'}
         else:
@@ -1055,7 +1056,9 @@ def species():
                 speciesList = AlienSpecies.query.all()
                 for s in speciesList:
                     result.append({"id": s.id, "name": s.name, "image": s.image,
-                                   "available": s.available})
+                                   "event_specific": s.event_specific,
+                                   "available": s.available, "cost1": s.cost1,
+                        "cost2": s.cost2, "cost3": s.cost3})
                 data = {'status': 'ok', 'results': result}
             except:
                 data = {'status': 'error', 'results': 'database error'}
@@ -1068,10 +1071,17 @@ def species():
         provided_name = provided_js["name"]
         provided_image = provided_js["image"]
         provided_available = provided_js["available"]
+        provided_event_specific = provided_js["event_specific"]
+        provided_cost1 = provided_js["cost1"]
+        provided_cost2 = provided_js["cost2"]
+        provided_cost3 = provided_js["cost3"]
         
         try:
             s = AlienSpecies(name=provided_name, image=provided_image,
-                            available=provided_available)
+                            available=provided_available, 
+                            event_specific=provided_event_specific,
+                            cost1=provided_cost1, cost2=provided_cost2,
+                            cost3=provided_cost3)
             db.session.add(s)
             db.session.commit()
             data = {'status': 'ok'}
