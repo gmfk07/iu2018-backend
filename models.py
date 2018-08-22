@@ -180,6 +180,28 @@ class Project(db.Model):
     def __repr__(self):
         return '<Project {}>'.format(self.id)
     
+class AlienSpecies(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), index=True, unique=True)
+    image = db.Column(db.String(128))
+    available = db.Column(db.Boolean)
+    
+    aliens = db.relationship('Alien', backref='species', lazy='dynamic')
+    
+    def __repr__(self):
+        return '<AlienSpecies {}>'.format(self.name)
+    
+class Alien(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    species_id = db.Column(db.Integer, db.ForeignKey('alien_species.id'))
+    name = db.Column(db.String(64), index=True, unique=True)
+    x = db.Column(db.Integer)
+    y = db.Column(db.Integer)
+    
+    def __repr__(self):
+        return '<Alien {}>'.format(self.name)
+    
 class Status(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event = db.Column(db.Boolean)
