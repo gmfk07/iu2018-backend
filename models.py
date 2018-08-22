@@ -184,7 +184,12 @@ class AlienSpecies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True, unique=True)
     image = db.Column(db.String(128))
+    event_specific = db.Column(db.Boolean)
     available = db.Column(db.Boolean)
+    
+    cost1 = db.Column(db.Integer)
+    cost2 = db.Column(db.Integer)
+    cost3 = db.Column(db.Integer)
     
     aliens = db.relationship('Alien', backref='species', lazy='dynamic')
     
