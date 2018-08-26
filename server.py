@@ -178,7 +178,7 @@ def login():
     if request.method == "DELETE":
         if "username" in request.args:
             try:
-                logout()
+                logout_user()
                 data = {'status': 'ok'}
             except:
                 db.session.rollback()
